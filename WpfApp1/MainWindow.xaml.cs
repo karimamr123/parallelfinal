@@ -24,18 +24,31 @@ namespace WpfApp1
             // Disable the button to avoid multiple clicks
             FetchPostsButton.IsEnabled = false;
 
+            // Create and show the new window for logs
+            FetchPostsLogWindow logWindow = new FetchPostsLogWindow();
+            logWindow.Show();
+
+            // Log the start of the process
+            logWindow.AppendLog("Fetching social media posts in parallel...\n");
+
             // Create and start threads
             for (int i = 0; i < threadCount; i++)
             {
                 int threadIndex = i;
                 Thread thread = new Thread(() =>
                 {
+                    // Log that the thread has started
+                    logWindow.AppendLog($"Thread {threadIndex + 1} started.\n");
+
                     // Create and show a new window for each thread
                     FetchPostsWindow fetchPostsWindow = new FetchPostsWindow(facebookPageId, instagramUserId, threadIndex + 1);
                     fetchPostsWindow.Show();
 
                     // Run the dispatcher loop to allow UI updates in the new window
                     System.Windows.Threading.Dispatcher.Run();
+
+                    // Log that the thread has finished
+                    logWindow.AppendLog($"Thread {threadIndex + 1} finished.\n");
                 });
                 thread.SetApartmentState(ApartmentState.STA);
                 thread.Start();
@@ -43,6 +56,40 @@ namespace WpfApp1
 
             // Re-enable the button after starting threads
             FetchPostsButton.IsEnabled = true;
+        }
+    }
+
+    // New Window to display thread logs
+    public class FetchPostsLogWindow : Window
+    {
+        private TextBox logTextBox;
+
+        public FetchPostsLogWindow()
+        {
+            Title = "Fetch Posts Log";
+            Width = 600;
+            Height = 400;
+
+            // Create a TextBox to display the log
+            logTextBox = new TextBox
+            {
+                Margin = new Thickness(10),
+                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                IsReadOnly = true,
+                VerticalAlignment = VerticalAlignment.Stretch
+            };
+
+            // Set the TextBox as the content of the window
+            Content = logTextBox;
+        }
+
+        // Method to append log messages to the TextBox
+        public void AppendLog(string message)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                logTextBox.AppendText(message);
+            });
         }
     }
 
