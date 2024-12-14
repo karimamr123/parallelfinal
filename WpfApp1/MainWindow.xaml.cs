@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media.Imaging;
 using SocialMediaFetcherWPF;
 using static SocialMediaFetcherWPF.SocialMediaFetcher;
 
@@ -19,7 +20,6 @@ namespace WpfApp1
         {
             string facebookPageId = facebookPageIdTextBox.Text;
             string instagramUserId = instagramUserIdTextBox.Text;
-            string accessToken = accessTokenTextBox.Text;
 
             int threadCount = int.TryParse(threadCountTextBox.Text, out var count) ? count : 1;
 
@@ -32,7 +32,7 @@ namespace WpfApp1
                 int threadIndex = i;
                 Thread thread = new Thread(() =>
                 {
-                    FetchPostsWindow fetchPostsWindow = new FetchPostsWindow(facebookPageId, instagramUserId, accessToken, threadIndex + 1);
+                    FetchPostsWindow fetchPostsWindow = new FetchPostsWindow(facebookPageId, instagramUserId, threadIndex + 1);
                     fetchPostsWindow.Show();
                     System.Windows.Threading.Dispatcher.Run();
                 });
@@ -49,17 +49,16 @@ namespace WpfApp1
     {
         private SocialMediaFetcher fetcher;
         private TextBox facebookPostsTextBox;
-        private TextBox instagramPostsTextBox;
+        private StackPanel instagramPostsPanel;
         private string facebookPageId;
         private string instagramUserId;
-        private string accessToken;
+        private const string accessToken = "EAASDR6ICHTcBOzoMFbyheIgF0YbEHz7GM4TdZCCARskW0wnzkfdQvsPpYWwKovuqZBYRWWcrsEDD7DHWTeE6CILHM0BFnMcNabSbglXmPyM4BeppefJdm622oL24h64ZALN8oQ4lkdOfzXnTPIgr5ZA4jRYURFtVTYlr3gZBWBpSkTufwqwZAOn0ov2NWwPy1Q";
         private int threadIndex;
 
-        public FetchPostsWindow(string facebookPageId, string instagramUserId, string accessToken, int threadIndex)
+        public FetchPostsWindow(string facebookPageId, string instagramUserId, int threadIndex)
         {
             this.facebookPageId = facebookPageId;
             this.instagramUserId = instagramUserId;
-            this.accessToken = accessToken;
             this.threadIndex = threadIndex;
 
             fetcher = new SocialMediaFetcher();
@@ -71,12 +70,12 @@ namespace WpfApp1
             StackPanel stackPanel = new StackPanel();
 
             facebookPostsTextBox = new TextBox { Margin = new Thickness(10), Height = 200, VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
-            instagramPostsTextBox = new TextBox { Margin = new Thickness(10), Height = 200, VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
+            instagramPostsPanel = new StackPanel { Margin = new Thickness(10) };
 
             stackPanel.Children.Add(new TextBlock { Text = $"Facebook Posts (Thread {threadIndex})", Margin = new Thickness(10) });
             stackPanel.Children.Add(facebookPostsTextBox);
             stackPanel.Children.Add(new TextBlock { Text = $"Instagram Posts (Thread {threadIndex})", Margin = new Thickness(10) });
-            stackPanel.Children.Add(instagramPostsTextBox);
+            stackPanel.Children.Add(instagramPostsPanel);
 
             Content = stackPanel;
 
@@ -91,7 +90,7 @@ namespace WpfApp1
 
             // Display the results
             DisplayPosts(facebookPosts, facebookPostsTextBox);
-            DisplayPosts(instagramPosts, instagramPostsTextBox);
+            DisplayInstagramPosts(instagramPosts, instagramPostsPanel);
         }
 
         private void DisplayPosts(List<Post> posts, TextBox textBox)
@@ -106,9 +105,30 @@ namespace WpfApp1
             foreach (var post in posts)
             {
                 textBox.AppendText($"[{post.CreatedTime}] {post.Content}\n");
+            }
+        }
+
+        private void DisplayInstagramPosts(List<Post> posts, StackPanel panel)
+        {
+            panel.Children.Clear();
+            if (posts.Count == 0)
+            {
+                panel.Children.Add(new TextBlock { Text = "No posts found.", Margin = new Thickness(10) });
+                return;
+            }
+
+            foreach (var post in posts)
+            {
                 if (!string.IsNullOrEmpty(post.MediaUrl))
                 {
-                    textBox.AppendText($"Media URL: {post.MediaUrl}\n\n");
+                    Image image = new Image
+                    {
+                        Source = new BitmapImage(new Uri(post.MediaUrl)),
+                        Width = 200,
+                        Height = 200,
+                        Margin = new Thickness(10)
+                    };
+                    panel.Children.Add(image);
                 }
             }
         }

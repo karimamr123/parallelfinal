@@ -13,7 +13,6 @@ namespace SocialMediaFetcherWPF
         private static readonly HttpClient client = new HttpClient();
 
         // Fetch Facebook Posts
-        //hello peter
         public async Task<List<Post>> FetchFacebookPostsAsync(string facebookPageId, string accessToken)
         {
             try
