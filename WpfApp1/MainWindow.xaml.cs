@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Media.Imaging;
 using SocialMediaFetcherWPF;
 using static SocialMediaFetcherWPF.SocialMediaFetcher;
 
@@ -20,7 +19,6 @@ namespace WpfApp1
         {
             string facebookPageId = facebookPageIdTextBox.Text;
             string instagramUserId = instagramUserIdTextBox.Text;
-
             int threadCount = int.TryParse(threadCountTextBox.Text, out var count) ? count : 1;
 
             // Disable the button to avoid multiple clicks
@@ -32,8 +30,11 @@ namespace WpfApp1
                 int threadIndex = i;
                 Thread thread = new Thread(() =>
                 {
+                    // Create and show a new window for each thread
                     FetchPostsWindow fetchPostsWindow = new FetchPostsWindow(facebookPageId, instagramUserId, threadIndex + 1);
                     fetchPostsWindow.Show();
+
+                    // Run the dispatcher loop to allow UI updates in the new window
                     System.Windows.Threading.Dispatcher.Run();
                 });
                 thread.SetApartmentState(ApartmentState.STA);
@@ -49,7 +50,7 @@ namespace WpfApp1
     {
         private SocialMediaFetcher fetcher;
         private TextBox facebookPostsTextBox;
-        private StackPanel instagramPostsPanel;
+        private TextBox instagramPostsTextBox;
         private string facebookPageId;
         private string instagramUserId;
         private const string accessToken = "EAASDR6ICHTcBOzoMFbyheIgF0YbEHz7GM4TdZCCARskW0wnzkfdQvsPpYWwKovuqZBYRWWcrsEDD7DHWTeE6CILHM0BFnMcNabSbglXmPyM4BeppefJdm622oL24h64ZALN8oQ4lkdOfzXnTPIgr5ZA4jRYURFtVTYlr3gZBWBpSkTufwqwZAOn0ov2NWwPy1Q";
@@ -69,32 +70,35 @@ namespace WpfApp1
 
             StackPanel stackPanel = new StackPanel();
 
-            facebookPostsTextBox = new TextBox { Margin = new Thickness(10), Height = 200, VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
-            instagramPostsPanel = new StackPanel { Margin = new Thickness(10) };
+            // Create and configure TextBoxes for Facebook and Instagram posts
+            facebookPostsTextBox = new TextBox { Margin = new Thickness(10), Height = 200, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, IsReadOnly = true };
+            instagramPostsTextBox = new TextBox { Margin = new Thickness(10), Height = 200, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, IsReadOnly = true };
 
             stackPanel.Children.Add(new TextBlock { Text = $"Facebook Posts (Thread {threadIndex})", Margin = new Thickness(10) });
             stackPanel.Children.Add(facebookPostsTextBox);
             stackPanel.Children.Add(new TextBlock { Text = $"Instagram Posts (Thread {threadIndex})", Margin = new Thickness(10) });
-            stackPanel.Children.Add(instagramPostsPanel);
+            stackPanel.Children.Add(instagramPostsTextBox);
 
             Content = stackPanel;
 
+            // Hook up the Loaded event
             Loaded += FetchPostsWindow_Loaded;
         }
 
         private async void FetchPostsWindow_Loaded(object sender, RoutedEventArgs e)
         {
-            // Fetch posts asynchronously
+            // Fetch posts asynchronously using the fetcher
             var facebookPosts = await fetcher.FetchFacebookPostsAsync(facebookPageId, accessToken);
             var instagramPosts = await fetcher.FetchInstagramPostsAsync(instagramUserId, accessToken);
 
-            // Display the results
+            // Display the fetched posts in the TextBoxes
             DisplayPosts(facebookPosts, facebookPostsTextBox);
-            DisplayInstagramPosts(instagramPosts, instagramPostsPanel);
+            DisplayPosts(instagramPosts, instagramPostsTextBox);
         }
 
         private void DisplayPosts(List<Post> posts, TextBox textBox)
         {
+            // Clear existing content and display fetched posts
             textBox.Clear();
             if (posts.Count == 0)
             {
@@ -102,33 +106,13 @@ namespace WpfApp1
                 return;
             }
 
+            // Append posts to the TextBox
             foreach (var post in posts)
             {
                 textBox.AppendText($"[{post.CreatedTime}] {post.Content}\n");
-            }
-        }
-
-        private void DisplayInstagramPosts(List<Post> posts, StackPanel panel)
-        {
-            panel.Children.Clear();
-            if (posts.Count == 0)
-            {
-                panel.Children.Add(new TextBlock { Text = "No posts found.", Margin = new Thickness(10) });
-                return;
-            }
-
-            foreach (var post in posts)
-            {
                 if (!string.IsNullOrEmpty(post.MediaUrl))
                 {
-                    Image image = new Image
-                    {
-                        Source = new BitmapImage(new Uri(post.MediaUrl)),
-                        Width = 200,
-                        Height = 200,
-                        Margin = new Thickness(10)
-                    };
-                    panel.Children.Add(image);
+                    textBox.AppendText($"Media URL: {post.MediaUrl}\n\n");
                 }
             }
         }
