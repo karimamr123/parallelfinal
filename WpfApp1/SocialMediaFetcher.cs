@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using System.Windows;
 
@@ -145,6 +146,9 @@ namespace SocialMediaFetcherWPF
             public string Id { get; set; }
             public string Content { get; set; }
             public DateTime CreatedTime { get; set; }
+
+
+            [JsonPropertyName("media_url")]
             public string MediaUrl { get; set; }  // Optional, if you need it for Instagram posts
         }
 

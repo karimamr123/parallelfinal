@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media.Imaging;
 using SocialMediaFetcherWPF;
 using static SocialMediaFetcherWPF.SocialMediaFetcher;
 
@@ -41,7 +42,7 @@ namespace WpfApp1
                     logWindow.AppendLog($"Thread {threadIndex + 1} started.\n");
 
                     // Create and show a new window for each thread
-                    FetchPostsWindow fetchPostsWindow = new FetchPostsWindow(facebookPageId, instagramUserId, threadIndex + 1);
+                    FetchPostsWindow fetchPostsWindow = new FetchPostsWindow(facebookPageId, instagramUserId, threadIndex + 1, logWindow);
                     fetchPostsWindow.Show();
 
                     // Run the dispatcher loop to allow UI updates in the new window
@@ -102,12 +103,16 @@ namespace WpfApp1
         private string instagramUserId;
         private const string accessToken = "EAASDR6ICHTcBOzoMFbyheIgF0YbEHz7GM4TdZCCARskW0wnzkfdQvsPpYWwKovuqZBYRWWcrsEDD7DHWTeE6CILHM0BFnMcNabSbglXmPyM4BeppefJdm622oL24h64ZALN8oQ4lkdOfzXnTPIgr5ZA4jRYURFtVTYlr3gZBWBpSkTufwqwZAOn0ov2NWwPy1Q";
         private int threadIndex;
+        private FetchPostsLogWindow logWindow; // Reference to the log window
 
-        public FetchPostsWindow(string facebookPageId, string instagramUserId, int threadIndex)
+        private StackPanel stackPanel; // Define StackPanel
+
+        public FetchPostsWindow(string facebookPageId, string instagramUserId, int threadIndex, FetchPostsLogWindow logWindow)
         {
             this.facebookPageId = facebookPageId;
             this.instagramUserId = instagramUserId;
             this.threadIndex = threadIndex;
+            this.logWindow = logWindow;
 
             fetcher = new SocialMediaFetcher();
 
@@ -115,7 +120,7 @@ namespace WpfApp1
             Width = 400;
             Height = 600;
 
-            StackPanel stackPanel = new StackPanel();
+            stackPanel = new StackPanel();  // Initialize StackPanel
 
             // Create and configure TextBoxes for Facebook and Instagram posts
             facebookPostsTextBox = new TextBox { Margin = new Thickness(10), Height = 200, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, IsReadOnly = true };
@@ -126,7 +131,7 @@ namespace WpfApp1
             stackPanel.Children.Add(new TextBlock { Text = $"Instagram Posts (Thread {threadIndex})", Margin = new Thickness(10) });
             stackPanel.Children.Add(instagramPostsTextBox);
 
-            Content = stackPanel;
+            Content = stackPanel; // Set StackPanel as the window's content
 
             // Hook up the Loaded event
             Loaded += FetchPostsWindow_Loaded;
@@ -141,6 +146,9 @@ namespace WpfApp1
             // Display the fetched posts in the TextBoxes
             DisplayPosts(facebookPosts, facebookPostsTextBox);
             DisplayPosts(instagramPosts, instagramPostsTextBox);
+
+            // Log that the thread has finished processing
+            logWindow.AppendLog($"Thread {threadIndex} finished fetching posts.\n");
         }
 
         private void DisplayPosts(List<Post> posts, TextBox textBox)
@@ -156,12 +164,40 @@ namespace WpfApp1
             // Append posts to the TextBox
             foreach (var post in posts)
             {
+                // Display post creation time and content
                 textBox.AppendText($"[{post.CreatedTime}] {post.Content}\n");
+
                 if (!string.IsNullOrEmpty(post.MediaUrl))
                 {
-                    textBox.AppendText($"Media URL: {post.MediaUrl}\n\n");
+                    // Check if the media is an image (you can enhance this by checking the media type)
+                    if (post.MediaUrl.EndsWith(".jpg") || post.MediaUrl.EndsWith(".jpeg") || post.MediaUrl.EndsWith(".png"))
+                    {
+                        try
+                        {
+                            // Create and display the image
+                            var image = new Image
+                            {
+                                Source = new BitmapImage(new Uri(post.MediaUrl)),
+                                Width = 200,  // Adjust the size as needed
+                                Height = 200
+                            };
+
+                            stackPanel.Children.Add(image); // Add the image to the StackPanel
+                        }
+                        catch (Exception ex)
+                        {
+                            textBox.AppendText($"Error loading image: {ex.Message}\n");
+                        }
+                    }
+                    else
+                    {
+                        // Display the media URL as a clickable link
+                        textBox.AppendText($"Media URL: {post.MediaUrl}\n");
+                    }
                 }
+                textBox.AppendText("\n");
             }
         }
     }
+
 }
